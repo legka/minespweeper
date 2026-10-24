@@ -1,0 +1,636 @@
+:root {
+  --back-color: #ffffff;
+  --solid-color: #00c853;
+  --cleared-color: #b9f6ca;
+  --text-color: #333333;
+  --button-text-color: #000000;
+  --mine-color: #000000;
+  --button-color: #47e049;
+  --flag-color: #ffffff;
+  --card-color: #eeeeee;
+  --overlay-bg: rgba(255, 255, 255, 0.96);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background-color: var(--back-color);
+  color: var(--text-color);
+  font-family: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-weight: 300;
+  touch-action: none;
+  transition: background-color 0.25s ease, color 0.25s ease;
+}
+
+#game-canvas {
+  position: fixed;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+  cursor: pointer;
+}
+
+.hidden {
+  display: none !important;
+}
+
+/* ================= HUD OVERLAY ================= */
+.hud {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.hud-item {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 28px;
+  font-weight: 300;
+  color: var(--text-color);
+  padding: 6px 12px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--back-color) 72%, transparent);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.25s ease;
+}
+
+.hud-mines {
+  top: max(14px, env(safe-area-inset-top, 14px));
+  left: max(16px, env(safe-area-inset-left, 16px));
+}
+
+.hud-mines.bounce {
+  transform: scale(1.22);
+}
+
+.hud-timer {
+  bottom: max(18px, env(safe-area-inset-bottom, 18px));
+  left: max(16px, env(safe-area-inset-left, 16px));
+  font-variant-numeric: tabular-nums;
+}
+
+.hud-btn-gear {
+  position: absolute;
+  top: max(12px, env(safe-area-inset-top, 12px));
+  right: max(14px, env(safe-area-inset-right, 14px));
+  width: 48px;
+  height: 48px;
+  border: none;
+  background: color-mix(in srgb, var(--back-color) 72%, transparent);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  color: color-mix(in srgb, var(--text-color) 65%, var(--back-color));
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  pointer-events: auto;
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), color 0.2s;
+}
+
+.hud-btn-gear:hover {
+  color: var(--text-color);
+}
+
+.hud-btn-gear:active {
+  transform: scale(0.86) rotate(-45deg);
+}
+
+/* Floating Mode Switch Button (Bottom-Right like miniSweeper) */
+.btn-mode-switch {
+  position: absolute;
+  bottom: max(20px, env(safe-area-inset-bottom, 20px));
+  right: max(20px, env(safe-area-inset-right, 20px));
+  width: 68px;
+  height: 68px;
+  border-radius: 50%;
+  border: none;
+  background-color: var(--back-color);
+  box-shadow: 0 5px 18px rgba(0, 0, 0, 0.25), 0 1px 4px rgba(0, 0, 0, 0.14);
+  cursor: pointer;
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  perspective: 400px;
+  transition: background-color 0.22s ease, transform 0.15s ease, box-shadow 0.2s ease;
+}
+
+.btn-mode-switch:active {
+  transform: scale(0.9);
+}
+
+.btn-mode-switch.flag-mode {
+  background-color: var(--solid-color);
+  color: var(--flag-color);
+}
+
+.switch-inner {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.26s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.btn-mode-switch.flipping .switch-inner {
+  transform: scaleX(0.05) scaleY(1.1);
+}
+
+.icon-dig .dig-back {
+  fill: var(--cleared-color);
+}
+
+.icon-dig .dig-front {
+  fill: var(--solid-color);
+}
+
+.icon-flag {
+  display: none;
+  color: var(--flag-color);
+}
+
+.btn-mode-switch.flag-mode .icon-dig {
+  display: none;
+}
+
+.btn-mode-switch.flag-mode .icon-flag {
+  display: block;
+}
+
+/* ================= SCREEN OVERLAYS (MAIN MENU & SETTINGS) ================= */
+.screen-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  background-color: var(--overlay-bg);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  overflow-y: auto;
+  animation: fadeIn 0.25s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: scale(0.98); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.menu-container {
+  width: 100%;
+  max-width: 400px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.app-title {
+  font-size: clamp(46px, 11vw, 62px);
+  font-weight: 100;
+  letter-spacing: -0.5px;
+  margin-bottom: 42px;
+  color: var(--text-color);
+}
+
+.btn-primary {
+  width: 210px;
+  height: 66px;
+  border: none;
+  border-radius: 14px;
+  background-color: var(--button-color);
+  color: var(--button-text-color);
+  font-family: inherit;
+  font-size: 28px;
+  font-weight: 300;
+  cursor: pointer;
+  transition: transform 0.16s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.15s ease;
+  margin-bottom: 24px;
+}
+
+.btn-primary:hover {
+  filter: brightness(1.04);
+}
+
+.btn-primary:active {
+  transform: scale(0.93);
+}
+
+.preset-meta {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  padding: 0 18px;
+  margin-bottom: 6px;
+  font-size: 15px;
+  opacity: 0.75;
+}
+
+/* Horizontal Picker like miniSweeper */
+.horizontal-picker {
+  width: 100%;
+  border-top: 1.5px solid color-mix(in srgb, var(--text-color) 35%, transparent);
+  border-bottom: 1.5px solid color-mix(in srgb, var(--text-color) 35%, transparent);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 4px;
+  margin-bottom: 16px;
+  gap: 6px;
+}
+
+.picker-Option {
+  flex: 1;
+  background: none;
+  border: none;
+  color: var(--text-color);
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 300;
+  opacity: 0.4;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 6px 4px;
+  border-radius: 8px;
+  transition: opacity 0.2s, transform 0.2s, font-size 0.2s;
+  white-space: nowrap;
+}
+
+.picker-Option.active {
+  opacity: 1;
+  font-size: 21px;
+  font-weight: 400;
+  transform: scale(1.05);
+}
+
+.picker-Option:hover:not(.active) {
+  opacity: 0.7;
+}
+
+/* Custom Sliders */
+.custom-controls {
+  width: 100%;
+  border-top: 1.5px solid color-mix(in srgb, var(--text-color) 35%, transparent);
+  border-bottom: 1.5px solid color-mix(in srgb, var(--text-color) 35%, transparent);
+  padding: 14px 12px;
+  margin-bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.custom-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.custom-row label {
+  width: 24px;
+  font-size: 18px;
+  font-weight: 400;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.custom-row input[type="range"] {
+  flex: 1;
+  accent-color: var(--solid-color);
+  height: 6px;
+  cursor: pointer;
+}
+
+.custom-val {
+  width: 40px;
+  text-align: right;
+  font-size: 18px;
+  font-variant-numeric: tabular-nums;
+}
+
+.btn-text-small {
+  background: none;
+  border: none;
+  color: var(--text-color);
+  font-family: inherit;
+  font-size: 20px;
+  font-weight: 300;
+  padding: 8px 20px;
+  margin-bottom: 28px;
+  cursor: pointer;
+  opacity: 0.85;
+  transition: opacity 0.15s, transform 0.15s;
+}
+
+.btn-text-small:hover, .btn-text-large:hover, .btn-text-medium:hover {
+  opacity: 1;
+}
+
+.btn-text-small:active, .btn-text-large:active, .btn-text-medium:active {
+  transform: scale(0.94);
+}
+
+.btn-text-large {
+  background: none;
+  border: none;
+  color: var(--text-color);
+  font-family: inherit;
+  font-size: 28px;
+  font-weight: 300;
+  padding: 10px 24px;
+  cursor: pointer;
+  opacity: 0.9;
+  transition: opacity 0.15s, transform 0.15s;
+}
+
+.btn-text-medium {
+  background: none;
+  border: none;
+  color: var(--text-color);
+  font-family: inherit;
+  font-size: 22px;
+  font-weight: 300;
+  padding: 8px 20px;
+  cursor: pointer;
+}
+
+/* ================= SETTINGS MENU ================= */
+.settings-container {
+  max-height: 92vh;
+  gap: 14px;
+}
+
+.settings-header {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.settings-header h2 {
+  font-size: 28px;
+  font-weight: 300;
+}
+
+.btn-back {
+  background: none;
+  border: none;
+  color: var(--text-color);
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-back:active {
+  transform: scale(0.88);
+}
+
+.ingame-panel {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  padding: 6px 12px;
+}
+
+.stat-box {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 19px;
+  font-variant-numeric: tabular-nums;
+}
+
+.stat-square-icon {
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  background-color: var(--solid-color);
+  display: inline-block;
+}
+
+.ingame-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+
+.btn-secondary {
+  flex: 1;
+  padding: 10px 16px;
+  border-radius: 10px;
+  border: 1.5px solid color-mix(in srgb, var(--text-color) 28%, transparent);
+  background: transparent;
+  color: var(--text-color);
+  font-family: inherit;
+  font-size: 17px;
+  font-weight: 400;
+  cursor: pointer;
+  transition: background-color 0.15s, transform 0.15s;
+}
+
+.btn-secondary:active {
+  transform: scale(0.95);
+}
+
+.divider {
+  border: none;
+  border-top: 1px solid color-mix(in srgb, var(--text-color) 20%, transparent);
+  margin: 4px 0;
+}
+
+.setting-group {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.setting-label-center {
+  font-size: 15px;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  opacity: 0.7;
+}
+
+.theme-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: center;
+}
+
+.theme-pill {
+  padding: 7px 13px;
+  border-radius: 20px;
+  border: 1.5px solid color-mix(in srgb, var(--text-color) 25%, transparent);
+  background: transparent;
+  color: var(--text-color);
+  font-family: inherit;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.theme-pill.active {
+  background-color: var(--solid-color);
+  border-color: var(--solid-color);
+  color: var(--flag-color);
+  font-weight: 400;
+}
+
+.setting-toggles {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 6px 4px;
+}
+
+.toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 18px;
+  cursor: pointer;
+  padding: 4px 0;
+}
+
+.toggle-row input {
+  display: none;
+}
+
+.toggle-slider {
+  width: 46px;
+  height: 26px;
+  background-color: color-mix(in srgb, var(--text-color) 25%, transparent);
+  border-radius: 26px;
+  position: relative;
+  transition: background-color 0.2s ease;
+}
+
+.toggle-slider::after {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background-color: var(--back-color);
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.toggle-row input:checked + .toggle-slider {
+  background-color: var(--solid-color);
+}
+
+.toggle-row input:checked + .toggle-slider::after {
+  transform: translateX(20px);
+  background-color: var(--flag-color);
+}
+
+/* ================= GAME END CARD ================= */
+.end-card {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 25;
+  width: min(310px, 86vw);
+  background-color: var(--card-color);
+  color: var(--text-color);
+  border-radius: 22px;
+  padding: 28px 24px 22px;
+  box-shadow: 0 16px 44px rgba(0, 0, 0, 0.28), 0 2px 10px rgba(0, 0, 0, 0.14);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  cursor: grab;
+  touch-action: none;
+  animation: cardPopIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.end-card:active {
+  cursor: grabbing;
+}
+
+@keyframes cardPopIn {
+  from { opacity: 0; transform: translate(-50%, -40%) scale(0.85); }
+  to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+
+.end-title {
+  font-size: 36px;
+  font-weight: 300;
+  margin-bottom: 6px;
+}
+
+.end-subtitle {
+  font-size: 19px;
+  opacity: 0.8;
+  margin-bottom: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.end-record {
+  font-size: 15px;
+  font-weight: 400;
+  padding: 4px 12px;
+  border-radius: 12px;
+  background-color: var(--button-color);
+  color: var(--button-text-color);
+  margin-bottom: 14px;
+}
+
+.end-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  margin-top: 6px;
+}
+
+.btn-end {
+  width: 180px;
+  height: 54px;
+  font-size: 22px;
+  margin-bottom: 2px;
+}

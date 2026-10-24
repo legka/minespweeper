@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#ffffff" id="meta-theme-color" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <title>miniSweeper</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@100;300;400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <!-- Game Canvas -->
+  <canvas id="game-canvas"></canvas>
+
+  <!-- In-Game HUD Overlay -->
+  <div id="hud" class="hud hidden">
+    <!-- Top Left: Mines Left (when switch button is shown) -->
+    <div id="hud-mines" class="hud-item hud-mines">
+      <svg class="hud-icon" viewBox="0 0 24 24" width="22" height="22">
+        <circle cx="12" cy="12" r="6.5" fill="currentColor" />
+        <g stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+          <line x1="12" y1="2" x2="12" y2="22" />
+          <line x1="2" y1="12" x2="22" y2="12" />
+          <line x1="4.9" y1="4.9" x2="19.1" y2="19.1" />
+          <line x1="19.1" y1="4.9" x2="4.9" y2="19.1" />
+        </g>
+      </svg>
+      <span id="hud-mines-count">40</span>
+    </div>
+
+    <!-- Top Right: Settings Gear Button -->
+    <button id="btn-hud-settings" class="hud-btn-gear" aria-label="Settings">
+      <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="3"></circle>
+        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+      </svg>
+    </button>
+
+    <!-- Bottom Left/Right: Timer -->
+    <div id="hud-timer" class="hud-item hud-timer">0:00</div>
+
+    <!-- Bottom Right: Floating Control Mode Switch Button (Clear vs Flag) -->
+    <button id="btn-mode-switch" class="btn-mode-switch" aria-label="Toggle Flag/Dig Mode" title="Toggle Tap Action (Space / F)">
+      <div class="switch-inner" id="switch-inner">
+        <!-- Dig Icon (overlapping squares like miniSweeper) -->
+        <svg class="icon-dig" viewBox="0 0 48 48" width="32" height="32">
+          <rect class="dig-back" x="8" y="10" width="26" height="26" rx="5" />
+          <rect class="dig-front" x="15" y="12" width="26" height="26" rx="5" transform="rotate(8 28 25)" />
+        </svg>
+        <!-- Flag Icon -->
+        <svg class="icon-flag" viewBox="0 0 48 48" width="32" height="32">
+          <path d="M16 10 L36 17 L16 25 Z" fill="currentColor" />
+          <line x1="16" y1="10" x2="16" y2="36" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" />
+          <line x1="11" y1="36" x2="23" y2="36" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" />
+        </svg>
+      </div>
+    </button>
+  </div>
+
+  <!-- Main Menu Screen -->
+  <div id="menu-main" class="screen-overlay">
+    <div class="menu-container">
+      <h1 class="app-title">miniSweeper</h1>
+
+      <button id="btn-play" class="btn-primary">Play</button>
+
+      <!-- Sub-info row (Best Time & Mine Density) -->
+      <div class="preset-meta">
+        <span id="preset-record" class="meta-text">--:--</span>
+        <span id="preset-density" class="meta-text">15%</span>
+      </div>
+
+      <!-- Preset Selector Carousel (like miniSweeper horizontal slider) -->
+      <div id="preset-selector" class="horizontal-picker">
+        <button class="picker-Option" data-preset="0">
+          <span class="preset-label" id="preset-label-0">7x10 10</span>
+          <svg class="tiny-mine" viewBox="0 0 24 24" width="14" height="14">
+            <circle cx="12" cy="12" r="6.5" fill="currentColor" />
+            <g stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+              <line x1="12" y1="2" x2="12" y2="22" /><line x1="2" y1="12" x2="22" y2="12" />
+              <line x1="4.9" y1="4.9" x2="19.1" y2="19.1" /><line x1="19.1" y1="4.9" x2="4.9" y2="19.1" />
+            </g>
+          </svg>
+        </button>
+        <button class="picker-Option active" data-preset="1">
+          <span class="preset-label" id="preset-label-1">12x22 40</span>
+          <svg class="tiny-mine" viewBox="0 0 24 24" width="14" height="14">
+            <circle cx="12" cy="12" r="6.5" fill="currentColor" />
+            <g stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+              <line x1="12" y1="2" x2="12" y2="22" /><line x1="2" y1="12" x2="22" y2="12" />
+              <line x1="4.9" y1="4.9" x2="19.1" y2="19.1" /><line x1="19.1" y1="4.9" x2="4.9" y2="19.1" />
+            </g>
+          </svg>
+        </button>
+        <button class="picker-Option" data-preset="2">
+          <span class="preset-label" id="preset-label-2">18x32 100</span>
+          <svg class="tiny-mine" viewBox="0 0 24 24" width="14" height="14">
+            <circle cx="12" cy="12" r="6.5" fill="currentColor" />
+            <g stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+              <line x1="12" y1="2" x2="12" y2="22" /><line x1="2" y1="12" x2="22" y2="12" />
+              <line x1="4.9" y1="4.9" x2="19.1" y2="19.1" /><line x1="19.1" y1="4.9" x2="4.9" y2="19.1" />
+            </g>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Custom Size Sliders (Hidden unless Custom is toggled) -->
+      <div id="custom-controls" class="custom-controls hidden">
+        <div class="custom-row">
+          <label for="input-width">W</label>
+          <input type="range" id="input-width" min="5" max="60" value="12" />
+          <span id="val-width" class="custom-val">12</span>
+        </div>
+        <div class="custom-row">
+          <label for="input-height">H</label>
+          <input type="range" id="input-height" min="5" max="60" value="22" />
+          <span id="val-height" class="custom-val">22</span>
+        </div>
+        <div class="custom-row">
+          <label for="input-mines">
+            <svg viewBox="0 0 24 24" width="16" height="16">
+              <circle cx="12" cy="12" r="6.5" fill="currentColor" />
+              <g stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+                <line x1="12" y1="2" x2="12" y2="22" /><line x1="2" y1="12" x2="22" y2="12" />
+                <line x1="4.9" y1="4.9" x2="19.1" y2="19.1" /><line x1="19.1" y1="4.9" x2="4.9" y2="19.1" />
+              </g>
+            </svg>
+          </label>
+          <input type="range" id="input-mines" min="1" max="200" value="40" />
+          <span id="val-mines" class="custom-val">40</span>
+        </div>
+      </div>
+
+      <button id="btn-toggle-custom" class="btn-text-small">Custom</button>
+      <button id="btn-open-settings" class="btn-text-large">Settings</button>
+    </div>
+  </div>
+
+  <!-- Settings Overlay -->
+  <div id="menu-settings" class="screen-overlay hidden">
+    <div class="menu-container settings-container">
+      <div class="settings-header">
+        <button id="btn-close-settings" class="btn-back" aria-label="Back">
+          <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="19" y1="12" x2="5" y2="12"></line>
+            <polyline points="12 19 5 12 12 5"></polyline>
+          </svg>
+        </button>
+        <h2>Settings</h2>
+        <div style="width: 28px;"></div>
+      </div>
+
+      <!-- In-Game Stats Section (Only visible when opened from active game) -->
+      <div id="settings-ingame-panel" class="ingame-panel hidden">
+        <div class="stats-grid">
+          <div class="stat-box">
+            <svg viewBox="0 0 24 24" width="20" height="20">
+              <path d="M6 3 L19 8 L6 14 Z" fill="currentColor" />
+              <line x1="6" y1="3" x2="6" y2="21" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" />
+            </svg>
+            <span id="stat-flags">0/40</span>
+          </div>
+          <div class="stat-box">
+            <span class="stat-square-icon"></span>
+            <span id="stat-cleared">100%</span>
+          </div>
+          <div class="stat-box">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="9"></circle>
+              <polyline points="12 7 12 12 15 15"></polyline>
+            </svg>
+            <span id="stat-time">0:00.0</span>
+          </div>
+          <div class="stat-box">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+            </svg>
+            <span id="stat-best">--:--</span>
+          </div>
+        </div>
+        <div class="ingame-actions">
+          <button id="btn-settings-restart" class="btn-secondary">Restart</button>
+          <button id="btn-settings-menu" class="btn-secondary">Main Menu</button>
+        </div>
+        <hr class="divider" />
+      </div>
+
+      <div class="setting-group">
+        <div class="setting-label-center">Theme</div>
+        <div id="theme-selector" class="theme-pills">
+          <button class="theme-pill active" data-theme="Default">Default</button>
+          <button class="theme-pill" data-theme="Dark">Dark</button>
+          <button class="theme-pill" data-theme="Red">Red</button>
+          <button class="theme-pill" data-theme="Contrast">Contrast</button>
+          <button class="theme-pill" data-theme="Night">Night</button>
+          <button class="theme-pill" data-theme="Mini">Mini</button>
+        </div>
+      </div>
+
+      <div class="setting-toggles">
+        <label class="toggle-row">
+          <span>Show Switch Button</span>
+          <input type="checkbox" id="toggle-switch-btn" checked />
+          <span class="toggle-slider"></span>
+        </label>
+        <label class="toggle-row">
+          <span>Audio Effects</span>
+          <input type="checkbox" id="toggle-audio" checked />
+          <span class="toggle-slider"></span>
+        </label>
+        <label class="toggle-row">
+          <span>Vibrations (Haptics)</span>
+          <input type="checkbox" id="toggle-vibrate" checked />
+          <span class="toggle-slider"></span>
+        </label>
+        <label class="toggle-row">
+          <span>Tile Animations</span>
+          <input type="checkbox" id="toggle-tween" checked />
+          <span class="toggle-slider"></span>
+        </label>
+        <label class="toggle-row">
+          <span>Ripple Clear Animation</span>
+          <input type="checkbox" id="toggle-ripple" checked />
+          <span class="toggle-slider"></span>
+        </label>
+        <label class="toggle-row">
+          <span>Show Timer</span>
+          <input type="checkbox" id="toggle-timer" checked />
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+
+      <div class="setting-group">
+        <div class="setting-label-center">Show Mines Left</div>
+        <div id="mines-left-selector" class="theme-pills">
+          <button class="theme-pill active" data-showmines="always">Always</button>
+          <button class="theme-pill" data-showmines="five">When &le; 5</button>
+          <button class="theme-pill" data-showmines="never">Never</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Game End Card (Floating / Draggable Card like miniSweeper oMenuGameEnd) -->
+  <div id="game-end-card" class="end-card hidden">
+    <h2 id="end-title" class="end-title">You Won</h2>
+    <p id="end-subtitle" class="end-subtitle">Time: 0:42.1</p>
+    <div id="end-record-badge" class="end-record hidden">You Got a New Record!</div>
+    <div class="end-actions">
+      <button id="btn-end-again" class="btn-primary btn-end">Again</button>
+      <button id="btn-end-menu" class="btn-text-medium">Menu</button>
+    </div>
+  </div>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
